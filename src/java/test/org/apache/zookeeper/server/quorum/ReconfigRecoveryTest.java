@@ -18,19 +18,23 @@
 
 package org.apache.zookeeper.server.quorum;
 
-import static org.apache.zookeeper.test.ClientBase.CONNECTION_TIMEOUT;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-
 import org.apache.zookeeper.PortAssignment;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.test.ClientBase;
 import org.apache.zookeeper.test.ReconfigTest;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+
+import static org.apache.zookeeper.test.ClientBase.CONNECTION_TIMEOUT;
 
 public class ReconfigRecoveryTest extends QuorumPeerTestBase {
+    protected static final Logger LOG = LoggerFactory
+            .getLogger(ReconfigRecoveryTest.class);
     /**
      * Reconfiguration recovery - test that a reconfiguration is completed if
      * leader has .next file during startup and new config is not running yet
@@ -474,6 +478,7 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
         currentQuorumCfg = sb.toString();
 
         // Run servers 0..2 for a while
+        LOG.info("Run servers 0..2 for a while");
         MainThread mt[] = new MainThread[SERVER_COUNT];
         ZooKeeper zk[] = new ZooKeeper[SERVER_COUNT];
         for (int i = 0; i <= 2; i++) {
@@ -493,12 +498,14 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
         }
 
         // shut servers 0..2 down
+        LOG.info("shut servers 0..2 down");
         for (int i = 0; i <= 2; i++) {
             mt[i].shutdown();
             zk[i].close();
         }
 
         // generate new config string
+        LOG.info("generate new config string");
         ArrayList<String> allServersNext = new ArrayList<String>();
         sb = new StringBuilder();
         for (int i = 2; i < SERVER_COUNT; i++) {
@@ -509,6 +516,7 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
         }
         nextQuorumCfgSection = sb.toString();
 
+        LOG.info("simulate reconfig in progress - servers 0..2 have a temp reconfig file when they boot");
         // simulate reconfig in progress - servers 0..2 have a temp reconfig
         // file when they boot
         for (int i = 0; i <= 2; i++) {
@@ -517,6 +525,8 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
             zk[i] = new ZooKeeper("127.0.0.1:" + ports[i][2],
                     ClientBase.CONNECTION_TIMEOUT, this);
         }
+
+        LOG.info("new server 3 has still its invalid joiner config - everyone in old config + itself");
         // new server 3 has still its invalid joiner config - everyone in old
         // config + itself
         mt[3] = new MainThread(3, ports[3][2], currentQuorumCfg
@@ -525,6 +535,7 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
         zk[3] = new ZooKeeper("127.0.0.1:" + ports[3][2],
                 ClientBase.CONNECTION_TIMEOUT, this);
 
+        LOG.info("waiting for servers");
         for (int i = 2; i < SERVER_COUNT; i++) {
             Assert.assertTrue("waiting for server " + i + " being up",
                     ClientBase.waitForServerUp("127.0.0.1:" + ports[i][2],
@@ -532,6 +543,7 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
             ReconfigTest.testServerHasConfig(zk[i], allServersNext, null);
         }
 
+        LOG.info("testing ops");
         ReconfigTest.testNormalOperation(zk[0], zk[2]);
         ReconfigTest.testNormalOperation(zk[3], zk[1]);
         Assert.assertEquals(nextQuorumCfgSection + "version=200000000",
@@ -539,10 +551,12 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
         Assert.assertEquals(nextQuorumCfgSection + "version=200000000",
                 ReconfigTest.testServerHasConfig(zk[3], null, null));
 
+        LOG.info("shutting down");
         for (int i = 0; i < SERVER_COUNT; i++) {
             zk[i].close();
             mt[i].shutdown();
         }
+        LOG.info("leaving test");
     }
 
     /*
