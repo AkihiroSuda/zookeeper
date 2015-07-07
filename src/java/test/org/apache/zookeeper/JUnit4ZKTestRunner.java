@@ -40,10 +40,11 @@ public class JUnit4ZKTestRunner extends BlockJUnit4ClassRunner {
         super(klass);
     }
 
-    public static List<FrameworkMethod> computeTestMethodsForClass(Class klass, List<FrameworkMethod> list) {
+    public static List<FrameworkMethod> computeTestMethodsForClass(final Class klass, final List<FrameworkMethod> defaultMethods) {
+        List<FrameworkMethod> list = defaultMethods;
         String methodName = System.getProperty("test.method");
         if (methodName == null) {
-            LOG.info("No test.method specified");
+            LOG.info("No test.method specified. using default methods.");
         } else {
             LOG.info("Picked up test.method={}", methodName);
             try {
