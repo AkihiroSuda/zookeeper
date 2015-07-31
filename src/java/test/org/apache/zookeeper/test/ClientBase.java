@@ -18,40 +18,11 @@
 
 package org.apache.zookeeper.test;
 
-import static org.apache.zookeeper.client.FourLetterWordMain.send4LetterWord;
-
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
-
-
+import org.apache.zookeeper.*;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.common.IOUtils;
 import org.apache.zookeeper.common.Time;
 import org.apache.zookeeper.common.X509Exception.SSLContextException;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.PortAssignment;
-import org.apache.zookeeper.TestableZooKeeper;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.ZKTestCase;
-import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.common.IOUtils;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ServerCnxnFactoryAccessor;
 import org.apache.zookeeper.server.ZKDatabase;
@@ -64,6 +35,17 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+import java.io.*;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import static org.apache.zookeeper.client.FourLetterWordMain.send4LetterWord;
 
 public abstract class ClientBase extends ZKTestCase {
     protected static final Logger LOG = LoggerFactory.getLogger(ClientBase.class);
@@ -235,10 +217,11 @@ public abstract class ClientBase extends ZKTestCase {
     public static boolean waitForServerUp(String hp, long timeout, boolean secure) {
         long start = Time.currentElapsedTime();
         while (true) {
+            String result = null;
             try {
                 // if there are multiple hostports, just take the first one
                 HostPort hpobj = parseHostPortList(hp).get(0);
-                String result = send4LetterWord(hpobj.host, hpobj.port, "stat", secure);
+                result = send4LetterWord(hpobj.host, hpobj.port, "stat", secure);
                 if (result.startsWith("Zookeeper version:") &&
                         !result.contains("READ-ONLY")) {
                     return true;
@@ -250,7 +233,10 @@ public abstract class ClientBase extends ZKTestCase {
                 LOG.error("server {} not up", hp, e);
             }
 
-            if (Time.currentElapsedTime() > start + timeout) {
+            long currentElapsedTime = Time.currentElapsedTime();
+            if (currentElapsedTime > start + timeout) {
+                LOG.info("* waitForServerUp({}, {}, {}) will return false, 4lw result={}, {} > {} + {}",
+                        hp, timeout, secure, result, currentElapsedTime, start, timeout);
                 break;
             }
             try {
