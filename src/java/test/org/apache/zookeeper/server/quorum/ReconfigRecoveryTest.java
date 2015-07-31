@@ -515,6 +515,7 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
             sb.append(server + "\n");
         }
         nextQuorumCfgSection = sb.toString();
+        LOG.info("nextQuorumCfgSection={}", nextQuorumCfgSection);
 
         LOG.info("simulate reconfig in progress - servers 0..2 have a temp reconfig file when they boot");
         // simulate reconfig in progress - servers 0..2 have a temp reconfig
@@ -529,8 +530,10 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
         LOG.info("new server 3 has still its invalid joiner config - everyone in old config + itself");
         // new server 3 has still its invalid joiner config - everyone in old
         // config + itself
-        mt[3] = new MainThread(3, ports[3][2], currentQuorumCfg
-                + allServersNext.get(1));
+        String quorumCfgSection3 = currentQuorumCfg
+                + allServersNext.get(1);
+        LOG.info("quorumCfgSection3={}", quorumCfgSection3);
+        mt[3] = new MainThread(3, ports[3][2], quorumCfgSection3);
         mt[3].start();
         zk[3] = new ZooKeeper("127.0.0.1:" + ports[3][2],
                 ClientBase.CONNECTION_TIMEOUT, this);
