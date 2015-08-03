@@ -21,15 +21,6 @@
  */
 package org.apache.zookeeper.server.quorum;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.util.Properties;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZKTestCase;
@@ -37,6 +28,11 @@ import org.apache.zookeeper.common.PathUtils;
 import org.apache.zookeeper.server.admin.JettyAdminServer;
 import org.apache.zookeeper.test.ClientBase;
 import org.apache.zookeeper.test.QuorumBase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.util.Properties;
 
 /**
  * Has some common functionality for tests that work with QuorumPeers. Override
@@ -251,6 +247,9 @@ public class QuorumPeerTestBase extends ZKTestCase implements Watcher {
             if (t != null && t.isAlive()) {
                 main.shutdown();
                 t.join(500);
+                if (t.isAlive()) {
+                    throw new RuntimeException("t is still alive");
+                }
             }
         }
 
