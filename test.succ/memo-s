@@ -1,0 +1,9 @@
+    [junit] 2015-08-12 00:23:53,333 [myid:1] - INFO  [QuorumPeer[myid=1](plain=/127.0.0.1:11227)(secure=disabled):Leader@412] - LEADING - LEADER ELECTION TOOK - 1
+    [junit] 2015-08-12 00:23:53,631 [myid:2] - DEBUG [QuorumPeer[myid=2](plain=/127.0.0.1:11230)(secure=disabled):FastLeaderElection@964] - Adding vote: from=2, proposed leader=2, proposed zxid=0x100000005, proposed election epoch=0x1
+    [junit] 2015-08-12 00:23:53,667 [myid:3] - DEBUG [QuorumPeer[myid=3](plain=/127.0.0.1:11233)(secure=disabled):FastLeaderElection@964] - Adding vote: from=3, proposed leader=3, proposed zxid=0x100000005, proposed election epoch=0x1
+    [junit] 2015-08-12 00:23:53,688 [myid:3] - DEBUG [QuorumPeer[myid=3](plain=/127.0.0.1:11233)(secure=disabled):FastLeaderElection@964] - Adding vote: from=2, proposed leader=2, proposed zxid=0x100000005, proposed election epoch=0x1
+    [junit] 2015-08-12 00:23:53,689 [myid:2] - DEBUG [QuorumPeer[myid=2](plain=/127.0.0.1:11230)(secure=disabled):FastLeaderElection@964] - Adding vote: from=3, proposed leader=3, proposed zxid=0x100000005, proposed election epoch=0x1
+    [junit] 2015-08-12 00:23:53,691 [myid:2] - DEBUG [QuorumPeer[myid=2](plain=/127.0.0.1:11230)(secure=disabled):FastLeaderElection@964] - Adding vote: from=2, proposed leader=3, proposed zxid=0x100000005, proposed election epoch=0x1
+    [junit] 2015-08-12 00:23:53,692 [myid:3] - DEBUG [QuorumPeer[myid=3](plain=/127.0.0.1:11233)(secure=disabled):FastLeaderElection@964] - Adding vote: from=2, proposed leader=3, proposed zxid=0x100000005, proposed election epoch=0x1
+    [junit] 2015-08-12 00:23:53,713 [myid:0] - DEBUG [QuorumPeer[myid=0](plain=/127.0.0.1:11224)(secure=disabled):FastLeaderElection@964] - Adding vote: from=2, proposed leader=1, proposed zxid=0x100000005, proposed election epoch=0x1
+    [junit] 2015-08-12 00:23:53,895 [myid:3] - INFO  [QuorumPeer[myid=3](plain=/127.0.0.1:11233)(secure=disabled):Leader@412] - LEADING - LEADER ELECTION TOOK - 1

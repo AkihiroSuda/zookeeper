@@ -314,6 +314,8 @@ public class QuorumCnxManager {
         Long sid = null, protocolVersion = null;
         InetSocketAddress electionAddr = null;
 
+	    
+	LOG.debug("receiveConnection: sock={}", sock.toString());
         try {
             DataInputStream din = new DataInputStream(sock.getInputStream());
 
@@ -325,6 +327,7 @@ public class QuorumCnxManager {
                     InitialMessage init = InitialMessage.parse(protocolVersion, din);
                     sid = init.sid;
                     electionAddr = init.electionAddr;
+		    LOG.debug("receiveConnection: sid={}, electionAddr={}", sid, electionAddr);
                 } catch (InitialMessage.InitialMessageException ex) {
                     LOG.error(ex.toString());
                     closeSocket(sock);
@@ -349,6 +352,7 @@ public class QuorumCnxManager {
         
         //If wins the challenge, then close the new connection.
         if (sid < self.getId()) {
+	    LOG.debug("sid={} < self={}", sid, self.getId());
             /*
              * This replica might still believe that the connection to sid is
              * up, so we have to shut down the workers before trying to open a
@@ -356,8 +360,15 @@ public class QuorumCnxManager {
              */
             SendWorker sw = senderWorkerMap.get(sid);
             if (sw != null) {
+		LOG.debug("receiveConnection: finishing SW={}", sw.toString());
                 sw.finish();
             }
+	    // while (sw != null && sw.isAlive()){
+	    // 	try {
+	    // 	    LOG.debug("SW is still alive");
+	    // 	    Thread.sleep(10);
+	    // 	} catch (InterruptedException ie){}
+	    // }
 
             /*
              * Now we start a new connection
@@ -386,10 +397,17 @@ public class QuorumCnxManager {
 
             queueSendMap.putIfAbsent(sid,
                     new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY));
-            
+
+	    LOG.debug("receiveConnection: starting SW {} for sock{}", sw.toString(), sock.toString());
             sw.start();
+	    LOG.debug("receiveConnection: starting RW {} for sock{}", rw.toString(), sock.toString());
             rw.start();
         }
+	LOG.debug("receiveConnection: normal leave");
+
+
+
+
     }
 
     /**
@@ -563,8 +581,8 @@ public class QuorumCnxManager {
      *            Reference to socket
      */
     private void setSockOpts(Socket sock) throws SocketException {
-        sock.setTcpNoDelay(true);
-        sock.setSoTimeout(self.tickTime * self.syncLimit);
+	//sock.setTcpNoDelay(true);
+	sock.setSoTimeout(self.tickTime * self.syncLimit);
     }
 
     /**
@@ -756,8 +774,17 @@ public class QuorumCnxManager {
 
             this.interrupt();
             if (recvWorker != null) {
+		LOG.debug("SW.finish finishing RW");
                 recvWorker.finish();
             }
+
+	    // while(recvWorker != null && recvWorker.isAlive()){
+	    // 	try {
+	    // 	    LOG.debug("RW is still alive");
+	    // 	    Thread.sleep(10);
+	    // 	} catch(InterruptedException ie){
+	    // 	}
+	    // }
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Removing entry from senderWorkerMap sid=" + sid);
