@@ -315,22 +315,25 @@ public class QuorumCnxManager {
         InetSocketAddress electionAddr = null;
 
 	    
-	LOG.debug("receiveConnection: sock={}", sock.toString());
+	LOG.debug("receiveConnection: ENTER sock={}", sock.toString());
         try {
             DataInputStream din = new DataInputStream(sock.getInputStream());
 
             protocolVersion = din.readLong();
+	LOG.debug("receiveConnection: protocolVersion={}", protocolVersion);	    
             if (protocolVersion >= 0) { // this is a server id and not a protocol version
                 sid = protocolVersion;
             } else {
                 try {
+		    LOG.debug("receiveConnection: parsing IM");	    		    
                     InitialMessage init = InitialMessage.parse(protocolVersion, din);
                     sid = init.sid;
                     electionAddr = init.electionAddr;
-		    LOG.debug("receiveConnection: sid={}, electionAddr={}", sid, electionAddr);
+		    LOG.debug("receiveConnection: parsed IM, sid={}, electionAddr={}", sid, electionAddr);
                 } catch (InitialMessage.InitialMessageException ex) {
                     LOG.error(ex.toString());
                     closeSocket(sock);
+		    LOG.debug("receiveConnection: LEAVE ex={}", ex.toString());
                     return;
                 }
             }
@@ -347,6 +350,7 @@ public class QuorumCnxManager {
         } catch (IOException e) {
             closeSocket(sock);
             LOG.warn("Exception reading or writing challenge: {}", e.toString());
+	    LOG.debug("receiveConnection: LEAVE e={}", e.toString());
             return;
         }
         
@@ -403,11 +407,7 @@ public class QuorumCnxManager {
 	    LOG.debug("receiveConnection: starting RW {} for sock{}", rw.toString(), sock.toString());
             rw.start();
         }
-	LOG.debug("receiveConnection: normal leave");
-
-
-
-
+	LOG.debug("receiveConnection: LEAVE");
     }
 
     /**
@@ -581,7 +581,7 @@ public class QuorumCnxManager {
      *            Reference to socket
      */
     private void setSockOpts(Socket sock) throws SocketException {
-	//sock.setTcpNoDelay(true);
+	sock.setTcpNoDelay(true);
 	sock.setSoTimeout(self.tickTime * self.syncLimit);
     }
 
