@@ -251,6 +251,7 @@ public class QuorumCnxManager {
      * connection if it loses challenge. Otherwise, it keeps the connection.
      */
     public boolean initiateConnection(Socket sock, Long sid) {
+	LOG.debug("initiateConnection({},{}): ENTER", sock.toString(), sid);
         try {
             // Use BufferedOutputStream to reduce the number of IP packets. This is
             // important for x-DC scenarios.
@@ -272,6 +273,7 @@ public class QuorumCnxManager {
             closeSocket(sock);
             return false;
         }
+	LOG.debug("initiateConnection({},{}): wrote a challenge, self.getId()={}", sock.toString(), sid, self.getId());
         
         // If lost the challenge, then drop the new connection
         if (sid > self.getId()) {
@@ -286,19 +288,23 @@ public class QuorumCnxManager {
 
             SendWorker vsw = senderWorkerMap.get(sid);
             
-            if(vsw != null)
+            if(vsw != null){
+		LOG.debug("initiateConnection({},{}): finishing VSW{}", sock.toString(), sid, vsw.toString());
                 vsw.finish();
+	    }
             
             senderWorkerMap.put(sid, sw);
             queueSendMap.putIfAbsent(sid, new ArrayBlockingQueue<ByteBuffer>(
                         SEND_CAPACITY));
-            
+	    LOG.debug("initiateConnection({},{}): starting SW{}", sock.toString(), sid, self.getId(), sw.toString());
             sw.start();
+	    LOG.debug("initiateConnection({},{}): starting RW{}", sock.toString(), sid, self.getId(), rw.toString());
             rw.start();
-            
+            LOG.debug("initiateConnection({},{}): LEAVE, true", sock.toString(), sid);
             return true;    
             
         }
+            LOG.debug("initiateConnection({},{}): LEAVE, false", sock.toString(), sid);
         return false;
     }
     
@@ -314,20 +320,25 @@ public class QuorumCnxManager {
         Long sid = null, protocolVersion = null;
         InetSocketAddress electionAddr = null;
 
+	LOG.debug("receiveConnection({}): ENTER", sock.toString());
         try {
             DataInputStream din = new DataInputStream(sock.getInputStream());
 
             protocolVersion = din.readLong();
+	    LOG.debug("receiveConnection({}): protocolVersion={}", sock.toString(), protocolVersion);
             if (protocolVersion >= 0) { // this is a server id and not a protocol version
                 sid = protocolVersion;
             } else {
                 try {
+		    LOG.debug("receiveConnection({}): parsing IM", sock.toString());
                     InitialMessage init = InitialMessage.parse(protocolVersion, din);
                     sid = init.sid;
                     electionAddr = init.electionAddr;
+		    LOG.debug("receiveConnection({}): parsed IM, sid={}, electionAddr={}", sock.toString(), sid, electionAddr);
                 } catch (InitialMessage.InitialMessageException ex) {
                     LOG.error(ex.toString());
                     closeSocket(sock);
+		    LOG.debug("receiveConnection({}): LEAVE, ex={}", sock.toString(), ex.toString());
                     return;
                 }
             }
@@ -344,9 +355,10 @@ public class QuorumCnxManager {
         } catch (IOException e) {
             closeSocket(sock);
             LOG.warn("Exception reading or writing challenge: {}", e.toString());
+	    LOG.debug("receiveConnection({}): LEAVE, e={}", sock.toString(), e.toString());
             return;
         }
-        
+	LOG.debug("receiveConnection({}): sid={} self.getId()={}", sock.toString(), sid, self.getId());
         //If wins the challenge, then close the new connection.
         if (sid < self.getId()) {
             /*
@@ -356,6 +368,7 @@ public class QuorumCnxManager {
              */
             SendWorker sw = senderWorkerMap.get(sid);
             if (sw != null) {
+		LOG.debug("receiveConnection({}): finishing SW{}", sock.toString(), sw.toString());
                 sw.finish();
             }
 
@@ -379,6 +392,7 @@ public class QuorumCnxManager {
             SendWorker vsw = senderWorkerMap.get(sid);
             
             if (vsw != null) {
+		LOG.debug("receiveConnection({}): finishing VSW{}", sock.toString(), vsw.toString());
                 vsw.finish();
             }
 
@@ -386,10 +400,13 @@ public class QuorumCnxManager {
 
             queueSendMap.putIfAbsent(sid,
                     new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY));
-            
+
+	    LOG.debug("receiveConnection({}): starting SW{}", sock.toString(), sw.toString());
             sw.start();
+	    LOG.debug("receiveConnection({}): starting RW{}", sock.toString(), sw.toString());
             rw.start();
         }
+	LOG.debug("receiveConnection({}): LEAVE", sock.toString());
     }
 
     /**
@@ -632,6 +649,7 @@ public class QuorumCnxManager {
                     setName(addr.toString());
                     ss.bind(addr);
                     while (!shutdown) {
+			LOG.info("Waiting for connection request on {}", ss.toString());
                         Socket client = ss.accept();
                         setSockOpts(client);
                         LOG.info("Received connection request "
@@ -776,9 +794,11 @@ public class QuorumCnxManager {
                 LOG.error("BufferUnderflowException ", be);
                 return;
             }
+	    LOG.debug("SW({},{}): sending buffer {}", this.sock.toString(), this.sid, javax.xml.bind.DatatypeConverter.printHexBinary(b.array()));
             dout.writeInt(b.capacity());
             dout.write(b.array());
             dout.flush();
+	    LOG.debug("SW({},{}): sent buffer {}", this.sock.toString(), this.sid, javax.xml.bind.DatatypeConverter.printHexBinary(b.array()));
         }
 
         @Override
@@ -910,6 +930,7 @@ public class QuorumCnxManager {
                      */
                     byte[] msgArray = new byte[length];
                     din.readFully(msgArray, 0, length);
+		    LOG.debug("RW({},{}): received buffer {}", this.sock.toString(), this.sid, javax.xml.bind.DatatypeConverter.printHexBinary(msgArray));
                     ByteBuffer message = ByteBuffer.wrap(msgArray);
                     addToRecvQueue(new Message(message.duplicate(), sid));
                 }

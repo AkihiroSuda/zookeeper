@@ -29,8 +29,11 @@ import org.apache.zookeeper.test.ClientBase;
 import org.apache.zookeeper.test.ReconfigTest;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ReconfigRecoveryTest extends QuorumPeerTestBase {
+    protected static final Logger LOG = LoggerFactory.getLogger(ReconfigRecoveryTest.class);
     /**
      * Reconfiguration recovery - test that a reconfiguration is completed if
      * leader has .next file during startup and new config is not running yet
@@ -472,8 +475,10 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
 
         StringBuilder sb = generateConfig(3, ports, observers);
         currentQuorumCfg = sb.toString();
+	LOG.info("generate old config string {}", currentQuorumCfg);
 
         // Run servers 0..2 for a while
+	LOG.info("Run servers 0..2 for a while");
         MainThread mt[] = new MainThread[SERVER_COUNT];
         ZooKeeper zk[] = new ZooKeeper[SERVER_COUNT];
         for (int i = 0; i <= 2; i++) {
@@ -493,6 +498,7 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
         }
 
         // shut servers 0..2 down
+	LOG.info("shut servers 0..2 down");
         for (int i = 0; i <= 2; i++) {
             mt[i].shutdown();
             zk[i].close();
@@ -508,9 +514,11 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
             sb.append(server + "\n");
         }
         nextQuorumCfgSection = sb.toString();
+	LOG.info("generate new config string {}", nextQuorumCfgSection);
 
         // simulate reconfig in progress - servers 0..2 have a temp reconfig
         // file when they boot
+	LOG.info("simulate reconfig in progress - servers 0..2 have a temp reconfig file when they boot");
         for (int i = 0; i <= 2; i++) {
             mt[i].writeTempDynamicConfigFile(nextQuorumCfgSection, "200000000");
             mt[i].start();
@@ -519,6 +527,7 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
         }
         // new server 3 has still its invalid joiner config - everyone in old
         // config + itself
+        LOG.info("new server 3 has still its invalid joiner config - everyone in old config + itself");
         mt[3] = new MainThread(3, ports[3][2], currentQuorumCfg
                 + allServersNext.get(1));
         mt[3].start();
@@ -531,6 +540,7 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
                             CONNECTION_TIMEOUT * 3));
             ReconfigTest.testServerHasConfig(zk[i], allServersNext, null);
         }
+	LOG.info("server 2,3 up");
 
         ReconfigTest.testNormalOperation(zk[0], zk[2]);
         ReconfigTest.testNormalOperation(zk[3], zk[1]);
@@ -539,6 +549,7 @@ public class ReconfigRecoveryTest extends QuorumPeerTestBase {
         Assert.assertEquals(nextQuorumCfgSection + "version=200000000",
                 ReconfigTest.testServerHasConfig(zk[3], null, null));
 
+	LOG.info("shut servers 0..3 down");
         for (int i = 0; i < SERVER_COUNT; i++) {
             zk[i].close();
             mt[i].shutdown();
