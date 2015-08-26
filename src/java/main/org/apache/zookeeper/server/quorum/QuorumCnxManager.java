@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.UnresolvedAddressException;
@@ -557,7 +558,8 @@ public class QuorumCnxManager {
     }
 
     /**
-     * Helper method to set socket options.
+     * Helper method to set socket options. Enables TCP_NODELAY(Nagle) and sets
+     * SO_TIMEOUT to tickTime * syncLimit for accept()/read()/receive().
      * 
      * @param sock
      *            Reference to socket
@@ -565,6 +567,13 @@ public class QuorumCnxManager {
     private void setSockOpts(Socket sock) throws SocketException {
         sock.setTcpNoDelay(true);
         sock.setSoTimeout(self.tickTime * self.syncLimit);
+        /* Default interval between last data packet and
+         * first keepalive probe is 2hrs(7200 secs) on a typical Linux box.
+         * Set tcp_keepalive_time, tcp_keepalive_intvl, tcp_keepalive_probes
+         * according to your preference to detect a dead socket on a Linux.
+         * There is no standard Java API to set these values for JAVA sockets.
+         */
+        sock.setKeepAlive(true);
     }
 
     /**
@@ -600,11 +609,19 @@ public class QuorumCnxManager {
     public class Listener extends ZooKeeperThread {
 
         volatile ServerSocket ss = null;
+        private InetSocketAddress addr = null;
 
         public Listener() {
             // During startup of thread, thread name will be overridden to
             // specific election address
             super("ListenerThread");
+        }
+
+        /*
+         * Used for testing.
+         */
+        public InetSocketAddress lastListenAddr() {
+            return addr;
         }
 
         /**
@@ -613,7 +630,6 @@ public class QuorumCnxManager {
         @Override
         public void run() {
             int numRetries = 0;
-            InetSocketAddress addr;
 
             while((!shutdown) && (numRetries < 3)){
                 try {
@@ -862,8 +878,6 @@ public class QuorumCnxManager {
             this.sw = sw;
             try {
                 din = new DataInputStream(sock.getInputStream());
-                // OK to wait until socket disconnects while reading.
-                sock.setSoTimeout(0);
             } catch (IOException e) {
                 LOG.error("Error while accessing socket for " + sid, e);
                 closeSocket(sock);
@@ -893,26 +907,48 @@ public class QuorumCnxManager {
         @Override
         public void run() {
             threadCnt.incrementAndGet();
+            int length = 0;
             try {
                 while (running && !shutdown && sock != null) {
                     /**
                      * Reads the first int to determine the length of the
                      * message
                      */
-                    int length = din.readInt();
+                    length = 0;
+
+                    /*
+                     * Do not shutdown the writer for read timeout here.
+                     */
+                    try {
+                        length = din.readInt();
+                    } catch (SocketTimeoutException e) {
+                        continue;
+                    }
+
                     if (length <= 0 || length > PACKETMAXSIZE) {
                         throw new IOException(
                                 "Received packet with invalid packet: "
                                         + length);
                     }
+
                     /**
                      * Allocates a new ByteBuffer to receive the message
                      */
                     byte[] msgArray = new byte[length];
+
+                    /**
+                     * we cannot expect to timeout here since we know we are
+                     * supposed to get msg of size length.
+                     * A timeout here is indicative of peer in trouble?!.
+                     */
                     din.readFully(msgArray, 0, length);
                     ByteBuffer message = ByteBuffer.wrap(msgArray);
                     addToRecvQueue(new Message(message.duplicate(), sid));
                 }
+            } catch(SocketTimeoutException e) {
+                LOG.warn("Connection broken when reading " + length +
+                        "bytes for id " + sid + ", my id = " + self.getId() +
+                        ", error = " , e);
             } catch (Exception e) {
                 LOG.warn("Connection broken for id " + sid + ", my id = " + 
                         self.getId() + ", error = " , e);

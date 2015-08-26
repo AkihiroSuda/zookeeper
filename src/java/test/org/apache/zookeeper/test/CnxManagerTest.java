@@ -407,6 +407,90 @@ public class CnxManagerTest extends ZKTestCase {
     }
 
     /**
+     * Test if RecvWorker does timeout reading for data after receiving
+     * how much data to read.
+     */
+    @Test
+    public void testRecvWorkTimeout() throws Exception {
+        QuorumPeer quorumPeer = null;
+        int sid = 0;
+        try {
+            quorumPeer = new QuorumPeer(peers, peerTmpdir[sid],
+                    peerTmpdir[sid], peerClientPort[sid], 3, sid, 1000, 2, 2);
+            LOG.info("Starting peer {}", quorumPeer.getId());
+            quorumPeer.start();
+            QuorumCnxManager cnxManager = new QuorumCnxManager(quorumPeer);
+            QuorumCnxManager.Listener listener = cnxManager.listener;
+            if (listener != null) {
+                listener.start();
+            } else {
+                Assert.fail("Null listener when initializing cnx manager");
+            }
+
+            int try_count = 0;
+            while (listener.lastListenAddr() == null
+                    && try_count++ < THRESHOLD) {
+                Thread.sleep(1000);
+            }
+
+            Assert.assertNotNull(listener.lastListenAddr());
+            SocketChannel sc = SocketChannel.open();
+            Socket s = sc.socket();
+            s.setReuseAddress(true);
+            s.connect(listener.lastListenAddr(), 5000);
+
+            InetSocketAddress otherAddr = peers.get(new Long(1)).electionAddr;
+            DataOutputStream dout = new DataOutputStream(sc.socket().getOutputStream());
+            // protocol version - a negative number
+            dout.writeLong(0xffff0000);
+            // server id
+            dout.writeLong(new Long(1));
+            // other stuff that a 3.5.0 server will send - not important for 3.4.6
+            // the 3.4.6 server should just skip it
+            String addr = otherAddr.getHostName() + ":" + otherAddr.getPort();
+            byte[] addr_bytes = addr.getBytes();
+            dout.writeInt(addr_bytes.length);
+            dout.write(addr_bytes);
+            dout.flush();
+
+            int timeoutLimit = cnxManager.getQuorumPeer().getTickTime() *
+                    cnxManager.getQuorumPeer().getSyncLimit();
+
+            // Triger threads to spawn if they didn't already
+            cnxManager.toSend(new Long(1),
+                    createMsg(ServerState.LOOKING.ordinal(), 1, -1, 1));
+
+            // Verify thread count.
+            String failure = verifyThreadCount(quorumPeer, 2);
+            Assert.assertNull(failure, failure);
+
+            // send another message but only the number of bytes
+            String testStr = "this is a test message string";
+            byte[] testStr_bytes = testStr.getBytes();
+            dout.writeInt(testStr_bytes.length);
+
+            // lets keep sending data out to peer so that we can
+            // test read side timeout.
+            long timeStart = System.currentTimeMillis();
+            while ((System.currentTimeMillis() - timeStart) <
+                    2 * timeoutLimit) {
+                cnxManager.toSend(new Long(2),
+                        createMsg(ServerState.LOOKING.ordinal(), 1, -1, 1));
+                if (_verifyThreadCount(quorumPeer, 2) != null) {
+                    break;
+                }
+            }
+
+            failure = _verifyThreadCount(quorumPeer, 0);
+            Assert.assertNull(failure, failure);
+        } catch (Exception e) {
+            LOG.error("Invalid exception: " + e);
+        } finally {
+            quorumPeer.shutdown();
+        }
+    }
+
+    /**
      * Returns null on success, otw the message assoc with the failure
      * @throws InterruptedException
      */
@@ -424,6 +508,21 @@ public class CnxManagerTest extends ZKTestCase {
         }
         return failure;
     }
+
+    public String verifyThreadCount(QuorumPeer peer, long ecnt)
+            throws InterruptedException {
+        String failure = null;
+        for (int i = 0; i < 480; i++) {
+            Thread.sleep(500);
+
+            failure = _verifyThreadCount(peer, ecnt);
+            if (failure == null) {
+                return null;
+            }
+        }
+        return failure;
+    }
+
     public String _verifyThreadCount(ArrayList<QuorumPeer> peerList, long ecnt) {
         for (int myid = 0; myid < peerList.size(); myid++) {
             QuorumPeer peer = peerList.get(myid);
@@ -434,6 +533,19 @@ public class CnxManagerTest extends ZKTestCase {
                     + " Incorrect number of Worker threads for sid=" + myid
                     + " expected " + ecnt + " found " + cnt;
             }
+            String ret = _verifyThreadCount(peer, ecnt);
+            if (ret != null) return null;
+        }
+        return null;
+    }
+
+    public String _verifyThreadCount(QuorumPeer peer, long ecnt) {
+        QuorumCnxManager cnxManager = peer.getQuorumCnxManager();
+        long cnt = cnxManager.getThreadCount();
+        if (cnt != ecnt) {
+            return new String(new Date()
+                    + " Incorrect number of Worker threads for sid="
+                    + peer.getId() + " expected " + ecnt + " found " + cnt);
         }
         return null;
     }
