@@ -20,7 +20,8 @@
 <project name="ZooKeeper" default="jar" 
 xmlns:ivy="antlib:org.apache.ivy.ant"
 xmlns:artifact="antlib:org.apache.maven.artifact.ant"
-xmlns:maven="antlib:org.apache.maven.artifact.ant">
+xmlns:maven="antlib:org.apache.maven.artifact.ant"
+xmlns:jacoco="antlib:org.jacoco.ant">
 
     <!-- read build.properties from the basedir if any -->
     <property file="${basedir}/build.properties" />
@@ -106,6 +107,12 @@ xmlns:maven="antlib:org.apache.maven.artifact.ant">
     <property name="clover.db.dir" location="${test.java.build.dir}/clover/db"/>
     <property name="clover.report.dir"
               location="${test.java.build.dir}/clover/reports"/>
+
+    <property name="jacoco.enabled" value="true"/>
+    <property name="jacoco.exec"
+              location="${test.java.build.dir}/jacoco/jacoco.exec"/>
+    <property name="jacoco.report.dir"
+              location="${test.java.build.dir}/jacoco/reports"/>
 
     <property name="contrib.dir" value="${src.dir}/contrib"/>
     <property name="recipes.dir" value="${src.dir}/recipes"/>
@@ -1351,8 +1358,9 @@ xmlns:maven="antlib:org.apache.maven.artifact.ant">
 
     <target name="junit.run" depends="junit-init,junit.run-single,junit.run-concurrent" />
 
-    <target name="junit.run-concurrent" if="ant.supports.concurrent.junit.processes">
-        <echo>Running ${test.junit.threads} concurrent JUnit processes.</echo>
+    <target name="junit.run-concurrent" if="ant.supports.concurrent.junit.processes" depends="jacoco-init">
+      <echo>Running ${test.junit.threads} concurrent JUnit processes.</echo>
+      <jacoco:coverage enabled="${jacoco.enabled}" destfile="${jacoco.exec}">
         <junit showoutput="${test.output}"
                printsummary="${test.junit.printsummary}"
                haltonfailure="${test.junit.haltonfailure}"
@@ -1376,11 +1384,13 @@ xmlns:maven="antlib:org.apache.maven.artifact.ant">
             <fileset refid="testcase.files" />
           </batchtest>
         </junit>
-        <fail if="tests.failed">Tests failed!</fail>
+      </jacoco:coverage>
+      <fail if="tests.failed">Tests failed!</fail>
     </target>
 
-    <target name="junit.run-single" unless="ant.supports.concurrent.junit.processes">
-        <echo>Running single JUnit process.  Upgrade to Ant 1.9.4 or later to run multiple JUnit processes.</echo>
+    <target name="junit.run-single" unless="ant.supports.concurrent.junit.processes" depends="jacoco-init">
+      <echo>Running single JUnit process.  Upgrade to Ant 1.9.4 or later to run multiple JUnit processes.</echo>
+      <jacoco:coverage enabled="${jacoco.enabled}" destfile="${jacoco.exec}">
         <junit showoutput="${test.output}"
                printsummary="${test.junit.printsummary}"
                haltonfailure="${test.junit.haltonfailure}"
@@ -1403,6 +1413,7 @@ xmlns:maven="antlib:org.apache.maven.artifact.ant">
           </batchtest>
         </junit>
         <fail if="tests.failed">Tests failed!</fail>
+      </jacoco:coverage>
     </target>
 
     <target name="check-cppunit-configure" depends="init" >
@@ -1684,6 +1695,41 @@ xmlns:maven="antlib:org.apache.maven.artifact.ant">
          	</fileset>
  	</path>
     </target>	
+
+    <!-- Code coverage (JaCoCo) -->
+    <target name="jacoco-init">
+      <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+	<classpath path="${ivy.test.lib}/org.jacoco.agent-0.7.5.201505241946.jar"/>
+	<classpath path="${ivy.test.lib}/org.jacoco.ant-0.7.5.201505241946.jar"/>
+	<classpath path="${ivy.test.lib}/org.jacoco.core-0.7.5.201505241946.jar"/>
+	<classpath path="${ivy.test.lib}/org.jacoco.report-0.7.5.201505241946.jar"/>
+	<classpath path="${ivy.test.lib}/asm-debug-all-5.0.1.jar"/>
+      </taskdef>
+    </target>
+
+    <target name="jacoco-report" description="Make JaCoCo report" depends="ivy-retrieve-test,jacoco-init">
+      <available file="${jacoco.exec}" property="jacoco.exec.present"/>
+      <fail unless="jacoco.exec.present">
+        Jacoco execfile (${jacoco.exec}) not found. Please run `ant test`.
+      </fail>
+      <mkdir dir="${jacoco.report.dir}"/>
+      <jacoco:report>
+	<executiondata>
+          <file file="${jacoco.exec}"/>
+	</executiondata>
+	<structure name="Apache ZooKeeper">
+          <classfiles>
+            <fileset dir="${build.classes}"/>
+          </classfiles>
+          <sourcefiles encoding="UTF-8">
+            <fileset dir="${java.src.dir}" />
+          </sourcefiles>
+	</structure>
+	<html destdir="${jacoco.report.dir}"/>
+	<xml destfile="${jacoco.report.dir}/jacoco.xml"/>
+      </jacoco:report>
+      <echo>JaCoCo report: ${jacoco.report.dir}/index.html (XML: jacoco.xml) </echo>
+    </target>
 
     <!-- ================================================================== -->
     <!-- Perform audit activities for the release                           -->
