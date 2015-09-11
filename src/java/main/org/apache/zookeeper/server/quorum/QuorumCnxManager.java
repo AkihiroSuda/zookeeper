@@ -252,12 +252,6 @@ public class QuorumCnxManager {
      */
     public boolean initiateConnection(Socket sock, Long sid) {
 	LOG.debug("initiateConnection({},{}): ENTER", sock.toString(), sid);
-        SendWorker vsw = senderWorkerMap.get(sid);
-
-        if(vsw != null){
-            LOG.debug("initiateConnection({},{}): finishing VSW{}", sock.toString(), sid, vsw.toString());
-            vsw.finish();
-        }
 
         try {
             // Use BufferedOutputStream to reduce the number of IP packets. This is
@@ -292,6 +286,13 @@ public class QuorumCnxManager {
             SendWorker sw = new SendWorker(sock, sid);
             RecvWorker rw = new RecvWorker(sock, sid, sw);
             sw.setRecv(rw);
+
+            SendWorker vsw = senderWorkerMap.get(sid);
+            if(vsw != null){
+                LOG.debug("initiateConnection({},{}): finishing VSW{}", sock.toString(), sid, vsw.toString());
+                vsw.finish();
+            }
+
 
             senderWorkerMap.put(sid, sw);
             queueSendMap.putIfAbsent(sid, new ArrayBlockingQueue<ByteBuffer>(
