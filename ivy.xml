@@ -67,6 +67,8 @@
                 conf="jdiff->default"/>
     <dependency org="xerces" name="xerces" rev="1.4.4"
                 conf="jdiff->default"/>
+    <dependency org="org.jacoco" name="org.jacoco.ant" rev="0.7.5.201505241946"
+		conf="test->default"/>
 
     <dependency org="org.apache.rat" name="apache-rat-tasks" 
                 rev="0.10" conf="releaseaudit->default"/>
