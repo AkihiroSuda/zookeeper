@@ -252,6 +252,13 @@ public class QuorumCnxManager {
      */
     public boolean initiateConnection(Socket sock, Long sid) {
 	LOG.debug("initiateConnection({},{}): ENTER", sock.toString(), sid);
+        SendWorker vsw = senderWorkerMap.get(sid);
+
+        if(vsw != null){
+            LOG.debug("initiateConnection({},{}): finishing VSW{}", sock.toString(), sid, vsw.toString());
+            vsw.finish();
+        }
+
         try {
             // Use BufferedOutputStream to reduce the number of IP packets. This is
             // important for x-DC scenarios.
@@ -286,13 +293,6 @@ public class QuorumCnxManager {
             RecvWorker rw = new RecvWorker(sock, sid, sw);
             sw.setRecv(rw);
 
-            SendWorker vsw = senderWorkerMap.get(sid);
-            
-            if(vsw != null){
-		LOG.debug("initiateConnection({},{}): finishing VSW{}", sock.toString(), sid, vsw.toString());
-                vsw.finish();
-	    }
-            
             senderWorkerMap.put(sid, sw);
             queueSendMap.putIfAbsent(sid, new ArrayBlockingQueue<ByteBuffer>(
                         SEND_CAPACITY));
@@ -366,11 +366,11 @@ public class QuorumCnxManager {
              * up, so we have to shut down the workers before trying to open a
              * new connection.
              */
-            SendWorker sw = senderWorkerMap.get(sid);
-            if (sw != null) {
-		LOG.debug("receiveConnection({}): finishing SW{}", sock.toString(), sw.toString());
-                sw.finish();
-            }
+//            SendWorker sw = senderWorkerMap.get(sid);
+//            if (sw != null) {
+//		LOG.debug("receiveConnection({}): finishing SW{}", sock.toString(), sw.toString());
+//                sw.finish();
+//            }
 
             /*
              * Now we start a new connection
