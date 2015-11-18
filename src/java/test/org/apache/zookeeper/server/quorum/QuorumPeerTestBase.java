@@ -280,5 +280,7 @@ public class QuorumPeerTestBase extends ZKTestCase implements Watcher {
             props.load(new FileReader(confFile));
             return props.getProperty(key, "");
         }
+
+        public File getTmpDir(){return tmpDir;}
     }
 }
