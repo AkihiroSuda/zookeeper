@@ -26,6 +26,7 @@ import org.apache.jute.Record;
 import org.apache.zookeeper.ZooDefs.OpCode;
 import org.apache.zookeeper.common.Time;
 import org.apache.zookeeper.server.Request;
+import org.apache.zookeeper.server.UnrecoverableException;
 import org.apache.zookeeper.server.quorum.flexible.QuorumVerifier;
 import org.apache.zookeeper.server.util.SerializeUtils;
 import org.apache.zookeeper.server.util.ZxidUtils;
@@ -99,6 +100,10 @@ public class Follower extends Learner{
     
                 // clear pending revalidations
                 pendingRevalidations.clear();
+
+                if (e instanceof UnrecoverableException) {
+                    throw (UnrecoverableException)e;
+                }
             }
         } finally {
             zk.unregisterJMX((Learner)this);

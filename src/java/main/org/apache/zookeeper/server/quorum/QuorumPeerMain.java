@@ -21,13 +21,10 @@ import java.io.IOException;
 
 import javax.management.JMException;
 
+import org.apache.zookeeper.server.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.jmx.ManagedUtil;
-import org.apache.zookeeper.server.ServerCnxnFactory;
-import org.apache.zookeeper.server.ZKDatabase;
-import org.apache.zookeeper.server.DatadirCleanupManager;
-import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.apache.zookeeper.server.admin.AdminServer.AdminServerException;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog.DatadirException;
@@ -179,6 +176,7 @@ public class QuorumPeerMain {
           quorumPeer.setLearnerType(config.getPeerType());
           quorumPeer.setSyncEnabled(config.getSyncEnabled());
           quorumPeer.setQuorumListenOnAllIPs(config.getQuorumListenOnAllIPs());
+          quorumPeer.setUncaughtExceptionHandler(qpUncaughtExceptionHandler);
           
           quorumPeer.start();
           quorumPeer.join();
@@ -187,4 +185,16 @@ public class QuorumPeerMain {
           LOG.warn("Quorum Peer interrupted", e);
       }
     }
+
+    private Thread.UncaughtExceptionHandler qpUncaughtExceptionHandler =
+            new Thread.UncaughtExceptionHandler() {
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            LOG.warn("Exception occured from thread {}", t.getName(), e);
+            if (e instanceof UnrecoverableException) {
+                LOG.error("Unrecoverable exception, exiting abnormally", e);
+                System.exit(1);
+            }
+        }
+    };
 }

@@ -26,6 +26,7 @@ import org.apache.jute.Record;
 import org.apache.zookeeper.ZooDefs.OpCode;
 import org.apache.zookeeper.server.ObserverBean;
 import org.apache.zookeeper.server.Request;
+import org.apache.zookeeper.server.UnrecoverableException;
 import org.apache.zookeeper.server.quorum.QuorumPeer.LearnerType;
 import org.apache.zookeeper.server.quorum.QuorumPeer.QuorumServer;
 import org.apache.zookeeper.server.quorum.QuorumPeer.ServerState;
@@ -92,6 +93,10 @@ public class Observer extends Learner{
 
                 // clear pending revalidations
                 pendingRevalidations.clear();
+
+                if (e instanceof UnrecoverableException) {
+                    throw (UnrecoverableException)e;
+                }
             }
         } finally {
             zk.unregisterJMX(this);

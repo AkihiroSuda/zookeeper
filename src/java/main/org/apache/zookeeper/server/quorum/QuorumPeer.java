@@ -49,10 +49,7 @@ import org.apache.zookeeper.common.AtomicFileWritingIdiom.WriterStatement;
 import org.apache.zookeeper.common.Time;
 import org.apache.zookeeper.jmx.MBeanRegistry;
 import org.apache.zookeeper.jmx.ZKMBeanInfo;
-import org.apache.zookeeper.server.ServerCnxnFactory;
-import org.apache.zookeeper.server.ZKDatabase;
-import org.apache.zookeeper.server.ZooKeeperServer;
-import org.apache.zookeeper.server.ZooKeeperThread;
+import org.apache.zookeeper.server.*;
 import org.apache.zookeeper.server.admin.AdminServer;
 import org.apache.zookeeper.server.admin.AdminServer.AdminServerException;
 import org.apache.zookeeper.server.admin.AdminServerFactory;
@@ -1070,6 +1067,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                         } catch (Exception e) {
                             LOG.warn("Unexpected exception", e);
                             setPeerState(ServerState.LOOKING);
+                            if (e instanceof UnrecoverableException) {
+                                throw (UnrecoverableException)e;
+                            }
                         } finally {
                             // If the thread is in the the grace period, interrupt
                             // to come out of waiting.
@@ -1087,6 +1087,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                         } catch (Exception e) {
                             LOG.warn("Unexpected exception", e);
                             setPeerState(ServerState.LOOKING);
+                            if (e instanceof UnrecoverableException) {
+                                throw (UnrecoverableException)e;
+                            }
                         }                        
                     }
                     break;
@@ -1097,6 +1100,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                         observer.observeLeader();
                     } catch (Exception e) {
                         LOG.warn("Unexpected exception",e );
+                        if (e instanceof UnrecoverableException) {
+                            throw (UnrecoverableException)e;
+                        }
                     } finally {
                         observer.shutdown();
                         setObserver(null);  
@@ -1110,6 +1116,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                         follower.followLeader();
                     } catch (Exception e) {
                        LOG.warn("Unexpected exception",e);
+                        if (e instanceof UnrecoverableException) {
+                            throw (UnrecoverableException)e;
+                        }
                     } finally {
                        follower.shutdown();
                        setFollower(null);
@@ -1124,6 +1133,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                         setLeader(null);
                     } catch (Exception e) {
                         LOG.warn("Unexpected exception",e);
+                        if (e instanceof UnrecoverableException) {
+                            throw (UnrecoverableException)e;
+                        }
                     } finally {
                         if (leader != null) {
                             leader.shutdown("Forcing shutdown");
@@ -1135,6 +1147,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 }
                 start_fle = Time.currentElapsedTime();
             }
+        } catch(UnrecoverableException ue){
+            LOG.error("Caught unrecoverable exception", ue);
+            throw ue;
         } finally {
             LOG.warn("QuorumPeer main thread exited");
             MBeanRegistry instance = MBeanRegistry.getInstance();
