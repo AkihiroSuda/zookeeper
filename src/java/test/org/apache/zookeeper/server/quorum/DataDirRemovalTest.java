@@ -109,10 +109,11 @@ public class DataDirRemovalTest extends QuorumPeerTestBase {
     }
 
     /**
-     * This test should *fail* until ZOOKEEPER-2162 gets fixed.
+     * This test asserts that zk0 should raise UnrecoverableException
+     * ("Leaders epoch, 1 is less than accepted epoch, 2")
+     * when zk1 unexpectedly rebooted with an empty data dir.
      *
-     * On failures, you can get infinite loop of
-     * "IOException: Leaders epoch, 1 is less than accepted epoch, 2"
+     * {@link https://issues.apache.org/jira/browse/ZOOKEEPER-2162}
      */
     @Test
     public void testDataDirRemoval() throws Exception {
