@@ -325,3 +325,4 @@ testRemoveConnectedFollower() {
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestReconfigServer);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(TestReconfigServer, "zookeeper_reconfigServer");

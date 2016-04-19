@@ -108,3 +108,4 @@ public:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(Zookeeper_readOnly);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(Zookeeper_readOnly, "Zookeeper_readOnly");

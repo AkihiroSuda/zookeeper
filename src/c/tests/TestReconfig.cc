@@ -598,3 +598,4 @@ public:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(Zookeeper_reconfig);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(Zookeeper_reconfig, "Zookeeper_reconfig");

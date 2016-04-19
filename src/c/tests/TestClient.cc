@@ -1395,3 +1395,4 @@ volatile int Zookeeper_simpleSystem::count;
 zhandle_t *Zookeeper_simpleSystem::async_zk;
 const char Zookeeper_simpleSystem::hostPorts[] = "127.0.0.1:22181";
 CPPUNIT_TEST_SUITE_REGISTRATION(Zookeeper_simpleSystem);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(Zookeeper_simpleSystem, "Zookeeper_simpleSystem");

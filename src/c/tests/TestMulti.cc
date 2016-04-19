@@ -701,3 +701,4 @@ public:
 volatile int Zookeeper_multi::count;
 const char Zookeeper_multi::hostPorts[] = "127.0.0.1:22181";
 CPPUNIT_TEST_SUITE_REGISTRATION(Zookeeper_multi);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(Zookeeper_multi, "Zookeeper_multi");

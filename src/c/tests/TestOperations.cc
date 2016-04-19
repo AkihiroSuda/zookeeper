@@ -708,3 +708,4 @@ public:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(Zookeeper_operations);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(Zookeeper_operations, "Zookeeper_operations");

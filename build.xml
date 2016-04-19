@@ -1295,7 +1295,8 @@ xmlns:cs="antlib:com.puppycrawl.tools.checkstyle.ant">
                 <env key="CALLER" value="ANT"/>
                 <env key="CLOVER_HOME" value="${clover.home}"/>
                 <env key="base_dir" value="${basedir}"/>
-		<arg line="clean check"/>
+		<env key="ZKTESTSUITE" value="${testcase}"/>
+		<arg line="check"/>
 	</exec>
     </target>
    

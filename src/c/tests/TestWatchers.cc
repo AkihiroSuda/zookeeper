@@ -771,3 +771,4 @@ public:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(Zookeeper_watchers);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(Zookeeper_watchers, "Zookeeper_watchers");

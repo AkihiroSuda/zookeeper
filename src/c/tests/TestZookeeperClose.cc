@@ -471,3 +471,4 @@ public:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(Zookeeper_close);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(Zookeeper_close, "Zookeeper_close");

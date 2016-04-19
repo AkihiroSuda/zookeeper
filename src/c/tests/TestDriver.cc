@@ -27,6 +27,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <stdexcept>
+#include <string.h>
 #include <unistd.h>
 #include <sys/select.h>
 #include <cppunit/Exception.h>
@@ -139,9 +140,21 @@ int main( int argc, char* argv[] ) {
    // brief + elapsed time
    TimingListener progress;
    controller.addListener( &progress );
- 
+
+   CPPUNIT_NS::Test *test;
+   const char *testSuiteName = getenv("ZKTESTSUITE");
+   CPPUNIT_NS::stdCOut() << "Specified test suite is " << testSuiteName << endl;
+   if (testSuiteName == NULL ||
+       strcmp(testSuiteName, "") == 0 ||
+       // FIXME
+       strcmp(testSuiteName, "${testcase}") == 0 ) {
+     test = CPPUNIT_NS::TestFactoryRegistry::getRegistry().makeTest();
+   } else {
+     test = CPPUNIT_NS::TestFactoryRegistry::getRegistry(testSuiteName).makeTest();
+   }
+
    CPPUNIT_NS::TestRunner runner;
-   runner.addTest( CPPUNIT_NS::TestFactoryRegistry::getRegistry().makeTest() );
+   runner.addTest( test );
  
    try {
      CPPUNIT_NS::stdCOut() << "Running " << endl;

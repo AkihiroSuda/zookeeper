@@ -299,3 +299,4 @@ public:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(Zookeeper_init);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(Zookeeper_init, "Zookeeper_init");

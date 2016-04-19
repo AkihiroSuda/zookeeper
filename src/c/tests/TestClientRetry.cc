@@ -145,3 +145,4 @@ public:
 zhandle_t *Zookeeper_clientretry::async_zk;
 const char Zookeeper_clientretry::hostPorts[] = "127.0.0.1:22181";
 CPPUNIT_TEST_SUITE_REGISTRATION(Zookeeper_clientretry);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(Zookeeper_clientretry, "Zookeeper_clientretry");
