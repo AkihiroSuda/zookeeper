@@ -863,6 +863,8 @@ int update_addrs(zhandle_t *zh)
         return ZSYSTEMERROR;
     }
 
+    printf("UA[ENTER]: hostname=%s\n", zh->hostname);
+
     // NOTE: guard access to {hostname, addr_cur, addrs, addrs_old, addrs_new}
     lock_reconfig(zh);
 
@@ -977,6 +979,21 @@ fail:
     if (hosts) {
         free(hosts);
         hosts = NULL;
+    }
+    printf("UA[RET]: hostname=%s\n",zh->hostname);
+    for (i = 0; i < zh->addrs.count; i++)
+    {
+	printf("UA[RET]: addrs[%d]=%s\n", i, format_endpoint_info(&zh->addrs.data[i]));
+    }
+
+    for (i = 0; i < zh->addrs_old.count; i++)
+    {
+	printf("UA[RET]: addrs_old[%d]=%s\n", i, format_endpoint_info(&zh->addrs_old.data[i]));
+    }
+
+    for (i = 0; i < zh->addrs_new.count; i++)
+    {
+	printf("UA[RET]: addrs_new[%d]=%s\n", i, format_endpoint_info(&zh->addrs_new.data[i]));
     }
 
     return rc;
@@ -1258,20 +1275,29 @@ static int get_next_server_in_reconfig(zhandle_t *zh)
                zh->addrs_new.count, zh->addrs_new.capacity, zh->addrs_new.next,
                addrvec_hasnext(&zh->addrs_new));
 
+
+    printf("GNSIR: cond1=%d, cond2=%d, cond3=%d\n",
+	   addrvec_hasnext(&zh->addrs_new),
+           take_new, addrvec_hasnext(&zh->addrs_old));
+
     // Take one of the new servers if we haven't tried them all yet
     // and either the probability tells us to connect to one of the new servers
     // or if we already tried them all then use one of the old servers
+    // cond1 && (cond2 || !cond3)
     if (addrvec_hasnext(&zh->addrs_new)
             && (take_new || !addrvec_hasnext(&zh->addrs_old)))
     {
         addrvec_next(&zh->addrs_new, &zh->addr_cur);
+	printf("GNSIR: Using next from NEW=%s\n", format_endpoint_info(&zh->addr_cur));
         LOG_DEBUG(LOGCALLBACK(zh), "Using next from NEW=%s", format_endpoint_info(&zh->addr_cur));
         return 0;
     }
 
     // start taking old servers
+    // cond3
     if (addrvec_hasnext(&zh->addrs_old)) {
         addrvec_next(&zh->addrs_old, &zh->addr_cur);
+	printf("GNSIR: Using next from OLD=%s\n", format_endpoint_info(&zh->addr_cur));
         LOG_DEBUG(LOGCALLBACK(zh), "Using next from OLD=%s", format_endpoint_info(&zh->addr_cur));
         return 0;
     }
